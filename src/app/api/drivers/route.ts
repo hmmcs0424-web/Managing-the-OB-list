@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     name: d.name,
     plate: d.plate,
     phoneDisplay: d.phoneDisplay,
+    doNotCall: d.doNotCall,
     updatedAt: d.updatedAt,
     callCount: d._count.callLogs,
     latest: d.callLogs[0]

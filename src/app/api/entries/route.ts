@@ -11,6 +11,8 @@ interface EntryInput {
   phoneNormalized?: string;
   memo?: string;
   status?: string;
+  dispatchSuccess?: boolean;
+  doNotCall?: boolean;
 }
 
 export async function POST(request: Request) {
@@ -27,6 +29,8 @@ export async function POST(request: Request) {
   }
 
   let count = 0;
+  let lastDriverId: string | null = null;
+
   for (const entry of entries) {
     const name = entry.name?.trim();
     const phoneNormalized = entry.phoneNormalized
@@ -40,11 +44,12 @@ export async function POST(request: Request) {
 
     const phoneDisplay = formatPhoneDisplay(entry.phoneRaw ?? phoneNormalized);
     const plate = entry.plate?.trim() || null;
+    const doNotCall = entry.doNotCall === true;
 
     const driver = await prisma.driver.upsert({
       where: { phoneNormalized },
-      update: { name, plate, phoneDisplay },
-      create: { name, plate, phoneNormalized, phoneDisplay },
+      update: { name, plate, phoneDisplay, doNotCall },
+      create: { name, plate, phoneNormalized, phoneDisplay, doNotCall },
     });
 
     await prisma.callLog.create({
@@ -53,11 +58,13 @@ export async function POST(request: Request) {
         agentId: session.user.id,
         memo: entry.memo?.trim() || null,
         status,
+        dispatchSuccess: entry.dispatchSuccess === true,
       },
     });
 
     count += 1;
+    lastDriverId = driver.id;
   }
 
-  return NextResponse.json({ ok: true, count });
+  return NextResponse.json({ ok: true, count, driverId: lastDriverId });
 }

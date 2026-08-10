@@ -18,10 +18,8 @@ export async function POST(request: Request) {
         include: {
           callLogs: {
             orderBy: { createdAt: "desc" },
-            take: 1,
             include: { agent: { select: { name: true } } },
           },
-          _count: { select: { callLogs: true } },
         },
       })
     : [];
@@ -42,7 +40,6 @@ export async function POST(request: Request) {
       };
     }
 
-    const last = existing.callLogs[0];
     return {
       ...row,
       phoneDisplay: existing.phoneDisplay,
@@ -51,11 +48,16 @@ export async function POST(request: Request) {
       existing: {
         name: existing.name,
         plate: existing.plate,
-        callCount: existing._count.callLogs,
-        lastAgent: last?.agent.name ?? null,
-        lastStatus: last?.status ?? null,
-        lastMemo: last?.memo ?? null,
-        lastAt: last?.createdAt ?? null,
+        doNotCall: existing.doNotCall,
+        callCount: existing.callLogs.length,
+        history: existing.callLogs.map((log) => ({
+          id: log.id,
+          status: log.status,
+          memo: log.memo,
+          dispatchSuccess: log.dispatchSuccess,
+          agentName: log.agent.name,
+          createdAt: log.createdAt,
+        })),
       },
     };
   });

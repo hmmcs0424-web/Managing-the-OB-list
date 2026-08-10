@@ -41,20 +41,23 @@ model Driver {
   phoneNormalized String    @unique
   phoneDisplay    String
   plate           String?
+  doNotCall       Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   callLogs        CallLog[]
 }
 
 model CallLog {
-  id        String     @id @default(cuid())
-  driver    Driver     @relation(fields: [driverId], references: [id])
-  driverId  String
-  agent     User       @relation(fields: [agentId], references: [id])
-  agentId   String
-  memo      String?
-  status    CallStatus @default(PENDING)
-  createdAt DateTime   @default(now())
+  id              String     @id @default(cuid())
+  driver          Driver     @relation(fields: [driverId], references: [id])
+  driverId        String
+  agent           User       @relation(fields: [agentId], references: [id])
+  agentId         String
+  memo            String?
+  status          CallStatus @default(PENDING)
+  dispatchSuccess Boolean    @default(false)
+  createdAt       DateTime   @default(now())
 
   @@index([driverId])
+  @@index([agentId, createdAt])
 }

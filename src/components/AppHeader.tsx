@@ -17,9 +17,14 @@ export default async function AppHeader() {
             대시보드
           </Link>
           {user?.role === "ADMIN" && (
-            <Link href="/admin/users" className="text-slate-600 hover:text-slate-900">
-              계정 관리
-            </Link>
+            <>
+              <Link href="/admin/stats" className="text-slate-600 hover:text-slate-900">
+                실적 대시보드
+              </Link>
+              <Link href="/admin/users" className="text-slate-600 hover:text-slate-900">
+                계정 관리
+              </Link>
+            </>
           )}
           {user && (
             <span className="text-slate-400">
