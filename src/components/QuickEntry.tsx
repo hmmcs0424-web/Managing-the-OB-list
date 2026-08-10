@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { parsePasteText } from "@/lib/parse";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { STATUS_LABELS, STATUS_COLORS, CALL_STATUSES, type CallStatus } from "@/lib/status";
 
 interface HistoryEntry {
@@ -81,11 +82,25 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
     setSearchResults([]);
     setExpandedId(null);
 
-    try {
-      const rows = parsePasteText(text);
-      const row = rows[0];
+    const rows = parsePasteText(text);
+    const row = rows[0];
+    const immediateEntry: CheckResult | null = row && !row.error
+      ? {
+          ...row,
+          phoneDisplay: formatPhoneDisplay(row.phoneRaw!),
+          kind: "new",
+        }
+      : null;
 
-      if (row && !row.error) {
+    // A valid new entry can be recorded immediately while duplicate history is checked.
+    if (immediateEntry) {
+      setEntry(immediateEntry);
+      setMode("register");
+      resetForm();
+    }
+
+    try {
+      if (immediateEntry) {
         const res = await fetch("/api/entries/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -112,8 +127,14 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
         setMode("search");
       }
     } catch (error) {
-      setMode("idle");
-      setMessage(error instanceof Error ? error.message : "조회에 실패했습니다.");
+      if (!immediateEntry) setMode("idle");
+      setMessage(
+        immediateEntry
+          ? "기존 이력 확인이 지연되고 있습니다. 기록은 계속 작성할 수 있습니다."
+          : error instanceof Error
+            ? error.message
+            : "조회에 실패했습니다."
+      );
     } finally {
       setLoading(false);
     }
