@@ -16,6 +16,7 @@ export async function GET() {
     },
     orderBy: { createdAt: "desc" },
     include: {
+      agent: { select: { id: true, name: true } },
       driver: {
         select: { id: true, name: true, plate: true, phoneDisplay: true, doNotCall: true },
       },

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
           callLogs: {
             orderBy: { createdAt: "desc" },
             take: 20,
-            include: { agent: { select: { name: true } } },
+            include: { agent: { select: { id: true, name: true } } },
           },
           _count: { select: { callLogs: true } },
         },
@@ -57,6 +57,7 @@ export async function POST(request: Request) {
           status: log.status,
           memo: log.memo,
           dispatchSuccess: log.dispatchSuccess,
+          agentId: log.agent.id,
           agentName: log.agent.name,
           createdAt: log.createdAt,
         })),

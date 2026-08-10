@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { useState } from "react";
-import { STATUS_LABELS, STATUS_COLORS, type CallStatus } from "@/lib/status";
+import { CALL_STATUSES, STATUS_LABELS, STATUS_COLORS, type CallStatus } from "@/lib/status";
 
 interface ActivityLog {
   id: string;
@@ -10,6 +10,7 @@ interface ActivityLog {
   memo: string | null;
   dispatchSuccess: boolean;
   createdAt: string;
+  agent: { id: string; name: string };
   driver: {
     id: string;
     name: string;
@@ -19,7 +20,15 @@ interface ActivityLog {
   };
 }
 
-export default function TodayActivity({ refreshKey }: { refreshKey: number }) {
+export default function TodayActivity({
+  refreshKey,
+  currentUserId,
+  role,
+}: {
+  refreshKey: number;
+  currentUserId: string;
+  role: "AGENT" | "ADMIN";
+}) {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +43,43 @@ export default function TodayActivity({ refreshKey }: { refreshKey: number }) {
   useEffect(() => {
     load();
   }, [load, refreshKey]);
+
+  async function editMemo(log: ActivityLog) {
+    const nextMemo = window.prompt("메모를 수정하세요.", log.memo ?? "");
+    if (nextMemo === null) return;
+    let payload: { memo: string; status?: CallStatus; dispatchSuccess?: boolean } = { memo: nextMemo };
+    if (role === "ADMIN") {
+      const nextStatus = window.prompt(
+        "상태를 입력하세요: ACCEPTED(수락), REJECTED(거절), NO_ANSWER(부재중), PENDING(보류)",
+        log.status
+      );
+      if (nextStatus === null) return;
+      if (!CALL_STATUSES.includes(nextStatus as CallStatus)) {
+        return window.alert("상태 값을 정확히 입력해주세요.");
+      }
+      payload = {
+        memo: nextMemo,
+        status: nextStatus as CallStatus,
+        dispatchSuccess: window.confirm("배차 성공 기록이면 확인을 누르세요."),
+      };
+    }
+    const res = await fetch(`/api/call-logs/${log.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? "메모 수정에 실패했습니다.");
+    load();
+  }
+
+  async function deleteLog(logId: string) {
+    if (!window.confirm("이 상담 기록을 삭제할까요?")) return;
+    const res = await fetch(`/api/call-logs/${logId}`, { method: "DELETE" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? "기록 삭제에 실패했습니다.");
+    load();
+  }
 
   const successCount = logs.filter((l) => l.dispatchSuccess).length;
 
@@ -77,7 +123,26 @@ export default function TodayActivity({ refreshKey }: { refreshKey: number }) {
             <span className="text-slate-400">
               {new Date(log.createdAt).toLocaleTimeString("ko-KR")}
             </span>
+            <span className="text-slate-500">작성자: {log.agent.name}</span>
             {log.memo && <span className="text-slate-700">&ldquo;{log.memo}&rdquo;</span>}
+            {(role === "ADMIN" || log.agent.id === currentUserId) && (
+              <button
+                type="button"
+                onClick={() => editMemo(log)}
+                className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-50"
+              >
+                {role === "ADMIN" ? "기록 수정" : "메모 수정"}
+              </button>
+            )}
+            {role === "ADMIN" && (
+              <button
+                type="button"
+                onClick={() => deleteLog(log.id)}
+                className="rounded border border-rose-300 px-2 py-0.5 text-xs text-rose-600 hover:bg-rose-50"
+              >
+                기록 삭제
+              </button>
+            )}
           </li>
         ))}
       </ul>

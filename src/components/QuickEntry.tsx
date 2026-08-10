@@ -7,6 +7,7 @@ import { STATUS_LABELS, STATUS_COLORS, CALL_STATUSES, type CallStatus } from "@/
 
 interface HistoryEntry {
   id: string;
+  agentId: string;
   status: CallStatus;
   memo: string | null;
   dispatchSuccess: boolean;
@@ -48,7 +49,15 @@ interface SearchDriver {
   } | null;
 }
 
-export default function QuickEntry({ onRegistered }: { onRegistered: () => void }) {
+export default function QuickEntry({
+  onRegistered,
+  currentUserId,
+  role,
+}: {
+  onRegistered: () => void;
+  currentUserId: string;
+  role: "AGENT" | "ADMIN";
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -202,9 +211,10 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
           memo: string | null;
           dispatchSuccess: boolean;
           createdAt: string;
-          agent: { name: string };
+          agent: { id: string; name: string };
         }) => ({
           id: log.id,
+          agentId: log.agent.id,
           status: log.status,
           memo: log.memo,
           dispatchSuccess: log.dispatchSuccess,
@@ -213,6 +223,70 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
         })
       )
     );
+  }
+
+  async function editMemo(log: HistoryEntry) {
+    const nextMemo = window.prompt("메모를 수정하세요.", log.memo ?? "");
+    if (nextMemo === null) return;
+    let payload: { memo: string; status?: CallStatus; dispatchSuccess?: boolean } = { memo: nextMemo };
+    if (role === "ADMIN") {
+      const nextStatus = window.prompt(
+        "상태를 입력하세요: ACCEPTED(수락), REJECTED(거절), NO_ANSWER(부재중), PENDING(보류)",
+        log.status
+      );
+      if (nextStatus === null) return;
+      if (!CALL_STATUSES.includes(nextStatus as CallStatus)) {
+        return window.alert("상태 값을 정확히 입력해주세요.");
+      }
+      payload = {
+        memo: nextMemo,
+        status: nextStatus as CallStatus,
+        dispatchSuccess: window.confirm("배차 성공 기록이면 확인을 누르세요."),
+      };
+    }
+    const res = await fetch(`/api/call-logs/${log.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? "메모 수정에 실패했습니다.");
+    handleLookup();
+  }
+
+  async function deleteLog(logId: string) {
+    if (!window.confirm("이 상담 기록을 삭제할까요?")) return;
+    const res = await fetch(`/api/call-logs/${logId}`, { method: "DELETE" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? "기록 삭제에 실패했습니다.");
+    handleLookup();
+  }
+
+  async function editDriver(driver: SearchDriver) {
+    const name = window.prompt("차주 이름", driver.name);
+    if (name === null) return;
+    const plate = window.prompt("차량번호", driver.plate ?? "");
+    if (plate === null) return;
+    const phone = window.prompt("전화번호", driver.phoneDisplay);
+    if (phone === null) return;
+    const res = await fetch(`/api/drivers/${driver.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, plate, phone, doNotCall: driver.doNotCall }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? "차주 정보 수정에 실패했습니다.");
+    handleLookup();
+  }
+
+  async function deleteDriver(driver: SearchDriver) {
+    if (!window.confirm(`${driver.name} 차주와 모든 상담 기록을 삭제할까요?`)) return;
+    const res = await fetch(`/api/drivers/${driver.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? "차주 삭제에 실패했습니다.");
+    setExpandedId(null);
+    handleLookup();
+    onRegistered();
   }
 
   return (
@@ -274,11 +348,21 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
                         배차성공
                       </span>
                     )}
-                    <span className="text-slate-600">{log.agentName}</span>
+                    <span className="text-slate-600">작성자: {log.agentName}</span>
                     <span className="text-slate-400">
                       {new Date(log.createdAt).toLocaleString("ko-KR")}
                     </span>
                     {log.memo && <span className="text-slate-700">&ldquo;{log.memo}&rdquo;</span>}
+                    {(role === "ADMIN" || log.agentId === currentUserId) && (
+                      <button type="button" onClick={() => editMemo(log)} className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600">
+                        {role === "ADMIN" ? "기록 수정" : "메모 수정"}
+                      </button>
+                    )}
+                    {role === "ADMIN" && (
+                      <button type="button" onClick={() => deleteLog(log.id)} className="rounded border border-rose-300 px-2 py-0.5 text-xs text-rose-600">
+                        기록 삭제
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -370,6 +454,16 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
                       </span>
                     )}
                   </button>
+                  {role === "ADMIN" && (
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" onClick={() => editDriver(d)} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                        차주 정보 수정
+                      </button>
+                      <button type="button" onClick={() => deleteDriver(d)} className="rounded border border-rose-300 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50">
+                        차주 전체 삭제
+                      </button>
+                    </div>
+                  )}
                   {expandedId === d.id && (
                     <div className="mt-2 rounded-lg bg-slate-50 p-3 text-sm">
                       {!expandedHistory && <p className="text-slate-400">불러오는 중...</p>}
@@ -387,12 +481,22 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
                                   배차성공
                                 </span>
                               )}
-                              <span className="text-slate-600">{log.agentName}</span>
+                              <span className="text-slate-600">작성자: {log.agentName}</span>
                               <span className="text-slate-400">
                                 {new Date(log.createdAt).toLocaleString("ko-KR")}
                               </span>
                               {log.memo && (
                                 <span className="text-slate-700">&ldquo;{log.memo}&rdquo;</span>
+                              )}
+                              {(role === "ADMIN" || log.agentId === currentUserId) && (
+                                <button type="button" onClick={() => editMemo(log)} className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600">
+                                  {role === "ADMIN" ? "기록 수정" : "메모 수정"}
+                                </button>
+                              )}
+                              {role === "ADMIN" && (
+                                <button type="button" onClick={() => deleteLog(log.id)} className="rounded border border-rose-300 px-2 py-0.5 text-xs text-rose-600">
+                                  기록 삭제
+                                </button>
                               )}
                             </li>
                           ))}
