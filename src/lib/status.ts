@@ -1,10 +1,11 @@
 export const CALL_STATUSES = ["ACCEPTED", "REJECTED", "NO_ANSWER", "PENDING"] as const;
 export type CallStatus = (typeof CALL_STATUSES)[number];
+export const ENTRY_CALL_STATUSES = ["ACCEPTED", "REJECTED", "NO_ANSWER"] as const;
 
 export const STATUS_LABELS: Record<CallStatus, string> = {
-  ACCEPTED: "수긍",
+  ACCEPTED: "긍정",
   REJECTED: "거절",
-  NO_ANSWER: "부재중",
+  NO_ANSWER: "부재",
   PENDING: "보류",
 };
 

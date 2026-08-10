@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { parsePasteText } from "@/lib/parse";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { STATUS_LABELS, STATUS_COLORS, CALL_STATUSES, type CallStatus } from "@/lib/status";
+import { STATUS_LABELS, STATUS_COLORS, CALL_STATUSES, ENTRY_CALL_STATUSES, type CallStatus } from "@/lib/status";
 
 interface HistoryEntry {
   id: string;
@@ -380,7 +380,7 @@ export default function QuickEntry({
               value={status}
               onChange={(e) => setStatus(e.target.value as CallStatus)}
             >
-              {CALL_STATUSES.map((s) => (
+              {ENTRY_CALL_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {STATUS_LABELS[s]}
                 </option>
