@@ -108,55 +108,84 @@ export default function TodayActivity({
         <p className="text-sm text-slate-400">오늘 처리한 항목이 없습니다.</p>
       )}
 
-      <ul className="divide-y divide-slate-100">
-        {logs.map((log) => (
-          <li key={log.id} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
-            <span className="font-medium text-slate-900">{log.driver.name}</span>
-            {log.driver.plate && (
-              <span className="text-slate-500">{log.driver.plate}</span>
-            )}
-            <span className="text-slate-500">{log.driver.phoneDisplay}</span>
-            {log.driver.doNotCall && (
-              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
-                🚫 재전화 거부
-              </span>
-            )}
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[log.status]}`}
-            >
-              {STATUS_LABELS[log.status]}
-            </span>
-            {log.dispatchSuccess && (
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                배차성공
-              </span>
-            )}
-            <span className="text-slate-400">
-              {new Date(log.createdAt).toLocaleTimeString("ko-KR")}
-            </span>
-            <span className="text-slate-500">작성자: {log.agent.name}</span>
-            {log.memo && <span className="text-slate-700">&ldquo;{log.memo}&rdquo;</span>}
-            {(role === "ADMIN" || log.agent.id === currentUserId) && (
-              <button
-                type="button"
-                onClick={() => editMemo(log)}
-                className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-50"
-              >
-                {role === "ADMIN" ? "기록 수정" : "메모 수정"}
-              </button>
-            )}
-            {role === "ADMIN" && (
-              <button
-                type="button"
-                onClick={() => deleteLog(log.id)}
-                className="rounded border border-rose-300 px-2 py-0.5 text-xs text-rose-600 hover:bg-rose-50"
-              >
-                기록 삭제
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
+      {!loading && !error && logs.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <table className="w-full min-w-[980px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs font-semibold text-slate-600">
+              <tr>
+                <th className="px-3 py-2.5">이름</th>
+                <th className="px-3 py-2.5">차량번호</th>
+                <th className="px-3 py-2.5">연락처</th>
+                <th className="px-3 py-2.5">통화상태</th>
+                <th className="px-3 py-2.5">성공여부</th>
+                <th className="px-3 py-2.5">처리자</th>
+                <th className="min-w-[180px] px-3 py-2.5">메모</th>
+                <th className="px-3 py-2.5">처리시간</th>
+                <th className="px-3 py-2.5">관리</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {logs.map((log) => (
+                <tr key={log.id} className="align-middle hover:bg-slate-50/70">
+                  <td className="whitespace-nowrap px-3 py-3 font-medium text-slate-900">
+                    {log.driver.name}
+                    {log.driver.doNotCall && (
+                      <span className="ml-1.5 rounded-full bg-rose-100 px-1.5 py-0.5 text-[11px] font-bold text-rose-700">
+                        재전화 거부
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-slate-600">
+                    {log.driver.plate ?? "-"}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-slate-600">
+                    {log.driver.phoneDisplay}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[log.status]}`}>
+                      {STATUS_LABELS[log.status]}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <span className={log.dispatchSuccess ? "font-semibold text-blue-700" : "text-slate-400"}>
+                      {log.dispatchSuccess ? "배차성공" : "-"}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-slate-600">{log.agent.name}</td>
+                  <td className="max-w-[260px] px-3 py-3 text-slate-700">
+                    <span className="block truncate" title={log.memo ?? ""}>{log.memo || "-"}</span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-slate-400">
+                    {new Date(log.createdAt).toLocaleTimeString("ko-KR")}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <div className="flex gap-1.5">
+                      {(role === "ADMIN" || log.agent.id === currentUserId) && (
+                        <button
+                          type="button"
+                          onClick={() => editMemo(log)}
+                          className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-white"
+                        >
+                          {role === "ADMIN" ? "기록 수정" : "메모 수정"}
+                        </button>
+                      )}
+                      {role === "ADMIN" && (
+                        <button
+                          type="button"
+                          onClick={() => deleteLog(log.id)}
+                          className="rounded border border-rose-300 px-2 py-1 text-xs text-rose-600 hover:bg-white"
+                        >
+                          기록 삭제
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
