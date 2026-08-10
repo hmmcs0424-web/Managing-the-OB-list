@@ -81,31 +81,42 @@ export default function QuickEntry({ onRegistered }: { onRegistered: () => void 
     setSearchResults([]);
     setExpandedId(null);
 
-    const rows = parsePasteText(text);
-    const row = rows[0];
+    try {
+      const rows = parsePasteText(text);
+      const row = rows[0];
 
-    if (row && !row.error) {
-      const res = await fetch("/api/entries/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const data: { results: CheckResult[] } = await res.json();
-      const result = data.results[0];
-      setEntry(result);
-      setMode("register");
-      resetForm();
-      if (result.kind === "duplicate" && result.existing) {
-        setDoNotCall(result.existing.doNotCall);
+      if (row && !row.error) {
+        const res = await fetch("/api/entries/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        const data = (await res.json().catch(() => null)) as
+          | { results?: CheckResult[]; error?: string }
+          | null;
+        const result = data?.results?.[0];
+        if (!res.ok || !result) throw new Error(data?.error || "조회에 실패했습니다.");
+        setEntry(result);
+        setMode("register");
+        resetForm();
+        if (result.kind === "duplicate" && result.existing) {
+          setDoNotCall(result.existing.doNotCall);
+        }
+      } else {
+        const res = await fetch(`/api/drivers?q=${encodeURIComponent(text)}`);
+        const data = (await res.json().catch(() => null)) as
+          | { drivers?: SearchDriver[]; error?: string }
+          | null;
+        if (!res.ok) throw new Error(data?.error || "검색에 실패했습니다.");
+        setSearchResults(data?.drivers ?? []);
+        setMode("search");
       }
-    } else {
-      const res = await fetch(`/api/drivers?q=${encodeURIComponent(text)}`);
-      const data: { drivers: SearchDriver[] } = await res.json();
-      setSearchResults(data.drivers);
-      setMode("search");
+    } catch (error) {
+      setMode("idle");
+      setMessage(error instanceof Error ? error.message : "조회에 실패했습니다.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

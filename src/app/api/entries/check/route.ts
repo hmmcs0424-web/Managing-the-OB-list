@@ -18,8 +18,10 @@ export async function POST(request: Request) {
         include: {
           callLogs: {
             orderBy: { createdAt: "desc" },
+            take: 20,
             include: { agent: { select: { name: true } } },
           },
+          _count: { select: { callLogs: true } },
         },
       })
     : [];
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
         name: existing.name,
         plate: existing.plate,
         doNotCall: existing.doNotCall,
-        callCount: existing.callLogs.length,
+        callCount: existing._count.callLogs,
         history: existing.callLogs.map((log) => ({
           id: log.id,
           status: log.status,

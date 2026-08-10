@@ -58,6 +58,6 @@ model CallLog {
   dispatchSuccess Boolean    @default(false)
   createdAt       DateTime   @default(now())
 
-  @@index([driverId])
+  @@index([driverId, createdAt(sort: Desc)])
   @@index([agentId, createdAt])
 }
