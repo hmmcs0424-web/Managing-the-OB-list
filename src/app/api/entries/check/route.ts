@@ -12,8 +12,10 @@ export async function POST(request: Request) {
     new Set(rows.filter((r) => !r.error && r.phoneNormalized).map((r) => r.phoneNormalized!))
   );
 
-  const existingDrivers = validPhones.length
-    ? await prisma.driver.findMany({
+  let existingDrivers;
+  try {
+    existingDrivers = validPhones.length
+      ? await prisma.driver.findMany({
         where: { phoneNormalized: { in: validPhones } },
         include: {
           callLogs: {
@@ -23,8 +25,15 @@ export async function POST(request: Request) {
           },
           _count: { select: { callLogs: true } },
         },
-      })
-    : [];
+        })
+      : [];
+  } catch (error) {
+    console.error("Failed to check existing drivers", error);
+    return NextResponse.json(
+      { error: "기존 통화 이력을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 500 }
+    );
+  }
 
   const byPhone = new Map(existingDrivers.map((d) => [d.phoneNormalized, d]));
 

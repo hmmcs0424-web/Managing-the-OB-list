@@ -28,10 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "등록할 항목이 없습니다." }, { status: 400 });
   }
 
-  let count = 0;
-  let lastDriverId: string | null = null;
-
-  for (const entry of entries) {
+  const validEntries = entries.flatMap((entry) => {
     const name = entry.name?.trim();
     const phoneNormalized = entry.phoneNormalized
       ? normalizePhone(entry.phoneNormalized)
@@ -39,32 +36,60 @@ export async function POST(request: Request) {
     const status = entry.status ?? "PENDING";
 
     if (!name || phoneNormalized.length < 9 || !isCallStatus(status)) {
-      continue;
+      return [];
     }
 
     const phoneDisplay = formatPhoneDisplay(entry.phoneRaw ?? phoneNormalized);
     const plate = entry.plate?.trim() || null;
     const doNotCall = entry.doNotCall === true;
 
-    const driver = await prisma.driver.upsert({
-      where: { phoneNormalized },
-      update: { name, plate, phoneDisplay, doNotCall },
-      create: { name, plate, phoneNormalized, phoneDisplay, doNotCall },
-    });
+    return [{ entry, name, phoneNormalized, phoneDisplay, plate, doNotCall, status }];
+  });
 
-    await prisma.callLog.create({
-      data: {
-        driverId: driver.id,
-        agentId: session.user.id,
-        memo: entry.memo?.trim() || null,
-        status,
-        dispatchSuccess: entry.dispatchSuccess === true,
-      },
-    });
-
-    count += 1;
-    lastDriverId = driver.id;
+  if (validEntries.length === 0) {
+    return NextResponse.json({ error: "이름과 올바른 전화번호를 확인해 주세요." }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, count, driverId: lastDriverId });
+  try {
+    const driverIds = await prisma.$transaction(async (tx) => {
+      const ids: string[] = [];
+      for (const item of validEntries) {
+        const driver = await tx.driver.upsert({
+          where: { phoneNormalized: item.phoneNormalized },
+          update: {
+            name: item.name,
+            plate: item.plate,
+            phoneDisplay: item.phoneDisplay,
+            doNotCall: item.doNotCall,
+          },
+          create: {
+            name: item.name,
+            plate: item.plate,
+            phoneNormalized: item.phoneNormalized,
+            phoneDisplay: item.phoneDisplay,
+            doNotCall: item.doNotCall,
+          },
+        });
+        await tx.callLog.create({
+          data: {
+            driverId: driver.id,
+            agentId: session.user.id,
+            memo: item.entry.memo?.trim() || null,
+            status: item.status,
+            dispatchSuccess: item.entry.dispatchSuccess === true,
+          },
+        });
+        ids.push(driver.id);
+      }
+      return ids;
+    });
+
+    return NextResponse.json({ ok: true, count: driverIds.length, driverId: driverIds.at(-1) });
+  } catch (error) {
+    console.error("Failed to register entries", error);
+    return NextResponse.json(
+      { error: "등록 중 서버 오류가 발생했습니다. 관리자에게 데이터베이스 상태를 확인해 달라고 요청해 주세요." },
+      { status: 500 }
+    );
+  }
 }

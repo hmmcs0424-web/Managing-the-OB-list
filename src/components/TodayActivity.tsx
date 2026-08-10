@@ -31,17 +31,27 @@ export default function TodayActivity({
 }) {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/activity/today");
-    const data = await res.json();
-    setLogs(data.logs ?? []);
-    setLoading(false);
+    setError(null);
+    try {
+      const res = await fetch("/api/activity/today");
+      const data = (await res.json().catch(() => null)) as { logs?: ActivityLog[]; error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "오늘 처리 목록을 불러오지 못했습니다.");
+      setLogs(data?.logs ?? []);
+    } catch (loadError) {
+      setLogs([]);
+      setError(loadError instanceof Error ? loadError.message : "오늘 처리 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    load();
+    const timeoutId = window.setTimeout(load, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [load, refreshKey]);
 
   async function editMemo(log: ActivityLog) {
@@ -93,7 +103,8 @@ export default function TodayActivity({
       </div>
 
       {loading && <p className="text-sm text-slate-400">불러오는 중...</p>}
-      {!loading && logs.length === 0 && (
+      {!loading && error && <p className="text-sm text-rose-600">{error}</p>}
+      {!loading && !error && logs.length === 0 && (
         <p className="text-sm text-slate-400">오늘 처리한 항목이 없습니다.</p>
       )}
 

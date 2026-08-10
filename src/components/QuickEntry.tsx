@@ -160,37 +160,42 @@ export default function QuickEntry({
     if (!entry || entry.kind === "error") return;
     setSubmitting(true);
     setMessage(null);
-    const res = await fetch("/api/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        entries: [
-          {
-            name: entry.name,
-            plate: entry.plate,
-            phoneRaw: entry.phoneRaw,
-            phoneNormalized: entry.phoneNormalized,
-            memo,
-            status,
-            dispatchSuccess,
-            doNotCall,
-          },
-        ],
-      }),
-    });
-    const data = await res.json();
-    setSubmitting(false);
-    if (!res.ok) {
-      setMessage(data.error ?? "등록에 실패했습니다.");
-      return;
+    try {
+      const res = await fetch("/api/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entries: [
+            {
+              name: entry.name,
+              plate: entry.plate,
+              phoneRaw: entry.phoneRaw,
+              phoneNormalized: entry.phoneNormalized,
+              memo,
+              status,
+              dispatchSuccess,
+              doNotCall,
+            },
+          ],
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) {
+        setMessage(data?.error ?? "등록에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      setMessage("등록 완료");
+      setValue("");
+      setMode("idle");
+      setEntry(null);
+      resetForm();
+      onRegistered();
+      inputRef.current?.focus();
+    } catch {
+      setMessage("서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(false);
     }
-    setMessage("등록 완료");
-    setValue("");
-    setMode("idle");
-    setEntry(null);
-    resetForm();
-    onRegistered();
-    inputRef.current?.focus();
   }
 
   async function toggleExpand(driverId: string) {
