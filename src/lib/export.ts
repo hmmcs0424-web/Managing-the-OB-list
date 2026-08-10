@@ -24,15 +24,16 @@ export async function buildDriverWorkbook(): Promise<Buffer> {
       "배차 건수": driver.callLogs.filter((log) => log.dispatchSuccess).length,
       "최근 통화 상태": latest ? STATUS_LABELS[latest.status as CallStatus] : "",
       "최근 상담사": latest?.agent.name ?? "",
-      "최근 통화 일시": latest?.createdAt ?? null,
+      "최근 작성일시": latest?.createdAt ?? null,
       "최근 메모": latest?.memo ?? "",
     };
   });
 
+  let sequence = 0;
   const rawRows = drivers.flatMap((driver) =>
     driver.callLogs.map((log) => ({
-      "통화 ID": log.id,
-      "통화 일시": log.createdAt,
+      순번: ++sequence,
+      작성일시: log.createdAt,
       상담사: log.agent.name,
       고객명: driver.name,
       차량번호: driver.plate ?? "",
