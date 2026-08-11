@@ -7,7 +7,7 @@ export default async function AppHeader() {
   const user = session?.user;
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
       <div className="flex items-center justify-between px-4 py-3">
         <Link href="/" className="text-sm font-bold text-slate-900">
           미배차 OB 차주 관리

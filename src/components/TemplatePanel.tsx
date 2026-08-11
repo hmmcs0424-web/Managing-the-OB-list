@@ -18,6 +18,7 @@ export default function TemplatePanel({ currentUserName }: { currentUserName: st
   const [area, setArea] = useState<string>(REGION_AREAS.경남[0]);
   const [values, setValues] = useState(() => templates(currentUserName, "경남", REGION_AREAS.경남[0]));
   const [copied, setCopied] = useState<number | null>(null);
+  const [open, setOpen] = useState(false);
 
   function applyRegion(nextProvince: Province, nextArea: string) {
     setProvince(nextProvince);
@@ -34,15 +35,18 @@ export default function TemplatePanel({ currentUserName }: { currentUserName: st
 
   const titles = ["이관 템플릿", "배차 상담 템플릿", "매칭 실패 템플릿", "부재 템플릿"];
   return (
-    <section className="sticky bottom-0 z-20 rounded-2xl border border-slate-300 bg-white/95 p-5 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div><h2 className="font-bold text-slate-900">상담 템플릿</h2><p className="text-xs text-slate-500">지역을 선택하면 상담 이력 템플릿 첫 줄에 자동 반영됩니다.</p></div>
-        <div className="flex gap-2">
+    <section className={`sticky bottom-0 z-20 rounded-2xl border border-slate-300 bg-white/95 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur ${open ? "p-5" : "p-3"}`}>
+      <div className={`flex flex-wrap items-end justify-between gap-3 ${open ? "mb-4" : ""}`}>
+        <div><h2 className="font-bold text-slate-900">상담 템플릿</h2>{open && <p className="text-xs text-slate-500">지역을 선택하면 상담 이력 템플릿 첫 줄에 자동 반영됩니다.</p>}</div>
+        <div className="flex items-end gap-2">
+          {open && <>
           <label className="text-xs font-medium text-slate-600">광역지역<select value={province} onChange={(event) => { const next = event.target.value as Province; applyRegion(next, REGION_AREAS[next][0]); }} className="mt-1 block rounded-md border border-slate-300 px-2 py-1.5 text-sm">{REGIONS.map((name) => <option key={name}>{name}</option>)}</select></label>
           <label className="text-xs font-medium text-slate-600">세부지역<select value={area} onChange={(event) => applyRegion(province, event.target.value)} className="mt-1 block rounded-md border border-slate-300 px-2 py-1.5 text-sm">{REGION_AREAS[province].map((name) => <option key={name}>{name}</option>)}</select></label>
+          </>}
+          <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">{open ? "접기" : "펼치기"}</button>
         </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {open && <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {values.map((value, index) => (
           <div key={titles[index]} className="rounded-xl border border-slate-200 p-3">
             <h3 className="mb-2 text-sm font-bold text-slate-800">{titles[index]}</h3>
@@ -50,7 +54,7 @@ export default function TemplatePanel({ currentUserName }: { currentUserName: st
             <div className="mt-2 flex gap-2"><button type="button" onClick={() => copy(index)} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white">{copied === index ? "복사 완료" : "전체 복사"}</button><button type="button" onClick={() => setValues((current) => current.map((item, itemIndex) => itemIndex === index ? templates(currentUserName, province, area)[index] : item))} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600">초기화</button></div>
           </div>
         ))}
-      </div>
+      </div>}
     </section>
   );
 }

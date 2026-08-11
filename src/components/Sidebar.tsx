@@ -23,7 +23,7 @@ export default function Sidebar({ role }: { role: "AGENT" | "ADMIN" }) {
   const links = role === "ADMIN" ? adminLinks : agentLinks;
 
   return (
-    <aside className="border-b border-slate-200 bg-white md:min-h-[calc(100vh-57px)] md:w-52 md:flex-none md:border-b-0 md:border-r">
+    <aside className="border-b border-slate-200 bg-white md:sticky md:top-[57px] md:h-[calc(100vh-57px)] md:w-52 md:flex-none md:self-start md:border-b-0 md:border-r">
       <nav className="flex gap-1 overflow-x-auto p-3 md:flex-col md:p-4">
         {links.map((link) => {
           const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
