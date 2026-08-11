@@ -14,3 +14,17 @@ export function kstStartOfToday(): Date {
 export function kstHour(date: Date): number {
   return new Date(date.getTime() + KST_OFFSET_MS).getUTCHours();
 }
+
+export function kstDateKey(date: Date): string {
+  return new Date(date.getTime() + KST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+export function currentKstMonthRange(): { from: string; to: string } {
+  const now = new Date(Date.now() + KST_OFFSET_MS);
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const from = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const to = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  return { from, to };
+}
