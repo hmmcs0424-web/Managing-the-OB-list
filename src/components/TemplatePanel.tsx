@@ -7,7 +7,7 @@ function templates(userName: string, province: Province, area: string) {
   const region = `${province} ${area.replace(/시$|군$|구$/, "")}`;
   return [
     `■ 운송장번호 :\n■ 차주 (이름/차량번호/연락처) :\n■ 내용 : 화물 등록 요청\n(${userName})`,
-    `${region} 지역 미배차 화물 / 배차 OB\n운송장번호 :\n- 배차 성공\n- 부재\n- 배차 거부`,
+    `${region} 지역 미배차 화물 / 배차 OB\n운송장번호 :\n- 배차 성공`,
     `${region} 지역 미배차 화물 / 배차 OB\n- 매칭 실패`,
     `${region} 지역 미배차 화물 / 배차 OB\n- 부재`,
   ];
