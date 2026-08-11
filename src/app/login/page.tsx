@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [rememberUsername, setRememberUsername] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const savedUsername = window.localStorage.getItem("rememberedUsername");
+    if (savedUsername) {
+      queueMicrotask(() => {
+        setUsername(savedUsername);
+        setRememberUsername(true);
+      });
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,6 +35,11 @@ export default function LoginPage() {
     if (result?.error) {
       setError("아이디 또는 비밀번호가 올바르지 않습니다.");
       return;
+    }
+    if (rememberUsername) {
+      window.localStorage.setItem("rememberedUsername", username.trim());
+    } else {
+      window.localStorage.removeItem("rememberedUsername");
     }
     router.push("/");
     router.refresh();
@@ -56,6 +72,21 @@ export default function LoginPage() {
           autoComplete="current-password"
           required
         />
+
+        <label className="mb-5 flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={rememberUsername}
+            onChange={(e) => {
+              setRememberUsername(e.target.checked);
+              if (!e.target.checked) {
+                window.localStorage.removeItem("rememberedUsername");
+              }
+            }}
+            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          아이디 저장
+        </label>
 
         {error && <p className="mb-4 text-sm text-rose-600">{error}</p>}
 
