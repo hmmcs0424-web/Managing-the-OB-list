@@ -20,6 +20,12 @@ interface ActivityLog {
   };
 }
 
+interface AgentOption { id: string; name: string }
+
+function todayInKorea() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+}
+
 export default function TodayActivity({
   refreshKey,
   currentUserId,
@@ -32,27 +38,43 @@ export default function TodayActivity({
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agents, setAgents] = useState<AgentOption[]>([]);
+  const [agentFilter, setAgentFilter] = useState("");
+  const [fromDate, setFromDate] = useState(todayInKorea);
+  const [toDate, setToDate] = useState(todayInKorea);
+  const [successFilter, setSuccessFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [filterKey, setFilterKey] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/activity/today");
-      const data = (await res.json().catch(() => null)) as { logs?: ActivityLog[]; error?: string } | null;
+      const params = new URLSearchParams();
+      if (role === "ADMIN") {
+        if (agentFilter) params.set("agentId", agentFilter);
+        if (fromDate) params.set("from", fromDate);
+        if (toDate) params.set("to", toDate);
+        if (successFilter) params.set("success", successFilter);
+        if (statusFilter) params.set("status", statusFilter);
+      }
+      const res = await fetch(`/api/activity/today?${params}`);
+      const data = (await res.json().catch(() => null)) as { logs?: ActivityLog[]; agents?: AgentOption[]; error?: string } | null;
       if (!res.ok) throw new Error(data?.error ?? "오늘 처리 목록을 불러오지 못했습니다.");
       setLogs(data?.logs ?? []);
+      if (data?.agents) setAgents(data.agents);
     } catch (loadError) {
       setLogs([]);
       setError(loadError instanceof Error ? loadError.message : "오늘 처리 목록을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [agentFilter, fromDate, role, statusFilter, successFilter, toDate]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(load, 0);
     return () => window.clearTimeout(timeoutId);
-  }, [load, refreshKey]);
+  }, [load, refreshKey, filterKey]);
 
   async function editMemo(log: ActivityLog) {
     const nextMemo = window.prompt("메모를 수정하세요.", log.memo ?? "");
@@ -96,11 +118,41 @@ export default function TodayActivity({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-bold text-slate-900">오늘 내가 처리한 목록</h2>
+        <h2 className="text-base font-bold text-slate-900">{role === "ADMIN" ? "전체 상담 기록" : "오늘 내가 처리한 목록"}</h2>
         <span className="text-sm text-slate-500">
           총 {logs.length}건 · 배차성공 {successCount}건
         </span>
       </div>
+
+      {role === "ADMIN" && (
+        <div className="mb-4 grid gap-2 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-6">
+          <label className="text-xs font-medium text-slate-600">상담사
+            <select value={agentFilter} onChange={(event) => setAgentFilter(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm">
+              <option value="">전체 상담사</option>
+              {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-medium text-slate-600">시작일
+            <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm" />
+          </label>
+          <label className="text-xs font-medium text-slate-600">종료일
+            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm" />
+          </label>
+          <label className="text-xs font-medium text-slate-600">성공여부
+            <select value={successFilter} onChange={(event) => setSuccessFilter(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm">
+              <option value="">전체</option><option value="true">배차성공</option><option value="false">미성공</option>
+            </select>
+          </label>
+          <label className="text-xs font-medium text-slate-600">통화상태
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm">
+              <option value="">전체</option><option value="ACCEPTED">긍정</option><option value="REJECTED">거절</option><option value="NO_ANSWER">부재</option>
+            </select>
+          </label>
+          <div className="flex items-end">
+            <button type="button" onClick={() => setFilterKey((key) => key + 1)} className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">검색</button>
+          </div>
+        </div>
+      )}
 
       {loading && <p className="text-sm text-slate-400">불러오는 중...</p>}
       {!loading && error && <p className="text-sm text-rose-600">{error}</p>}
@@ -156,7 +208,7 @@ export default function TodayActivity({
                     <span className="block truncate" title={log.memo ?? ""}>{log.memo || "-"}</span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-slate-400">
-                    {new Date(log.createdAt).toLocaleTimeString("ko-KR")}
+                    {role === "ADMIN" ? new Date(log.createdAt).toLocaleString("ko-KR") : new Date(log.createdAt).toLocaleTimeString("ko-KR")}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3">
                     <div className="flex gap-1.5">
