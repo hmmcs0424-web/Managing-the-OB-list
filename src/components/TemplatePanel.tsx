@@ -36,7 +36,7 @@ export default function TemplatePanel({ currentUserName, assignedRegions }: { cu
 
   const titles = ["이관 템플릿", "배차 상담 템플릿", "매칭 실패 템플릿", "부재 템플릿"];
   return (
-    <section className={`sticky bottom-0 z-20 rounded-2xl border border-slate-300 bg-white/95 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur ${open ? "p-5" : "p-3"}`}>
+    <section className={`sticky bottom-0 z-20 mt-auto rounded-2xl border border-slate-300 bg-white/95 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur ${open ? "p-5" : "p-3"}`}>
       <div className={`flex flex-wrap items-end justify-between gap-3 ${open ? "mb-4" : ""}`}>
         <div><h2 className="font-bold text-slate-900">상담 템플릿</h2>{open && <p className="text-xs text-slate-500">{assignedRegions.length ? "배정받은 광역지역에서 선택하면 템플릿 첫 줄에 자동 반영됩니다." : "관리자에게 배정받은 지역이 없습니다."}</p>}</div>
         <div className="flex items-end gap-2">

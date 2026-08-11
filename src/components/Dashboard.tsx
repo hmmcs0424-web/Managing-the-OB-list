@@ -20,7 +20,7 @@ export default function Dashboard({
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-1 flex-col gap-6">
       <QuickEntry currentUserId={currentUserId} role={role} onRegistered={() => setRefreshKey((k) => k + 1)} />
       <TodayActivity currentUserId={currentUserId} role={role} refreshKey={refreshKey} />
       <TemplatePanel currentUserName={currentUserName} assignedRegions={assignedRegions} />
