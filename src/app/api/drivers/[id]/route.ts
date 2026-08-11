@@ -48,6 +48,8 @@ export async function PATCH(
     data: {
       name,
       plate: typeof body?.plate === "string" ? body.plate.trim() || null : null,
+      tonnage: typeof body?.tonnage === "string" ? body.tonnage.trim() || null : null,
+      vehicleType: typeof body?.vehicleType === "string" ? body.vehicleType.trim() || null : null,
       phoneNormalized,
       phoneDisplay: formatPhoneDisplay(phoneNormalized),
       doNotCall: body?.doNotCall === true,

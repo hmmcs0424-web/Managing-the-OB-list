@@ -42,6 +42,8 @@ model Driver {
   phoneNormalized String    @unique
   phoneDisplay    String
   plate           String?
+  tonnage         String?
+  vehicleType     String?
   doNotCall       Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

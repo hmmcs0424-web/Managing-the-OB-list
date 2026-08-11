@@ -3,12 +3,15 @@
 import { useState } from "react";
 import QuickEntry from "./QuickEntry";
 import TodayActivity from "./TodayActivity";
+import TemplatePanel from "./TemplatePanel";
 
 export default function Dashboard({
   currentUserId,
+  currentUserName,
   role,
 }: {
   currentUserId: string;
+  currentUserName: string;
   role: "AGENT" | "ADMIN";
 }) {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -17,6 +20,7 @@ export default function Dashboard({
     <div className="space-y-6">
       <QuickEntry currentUserId={currentUserId} role={role} onRegistered={() => setRefreshKey((k) => k + 1)} />
       <TodayActivity currentUserId={currentUserId} role={role} refreshKey={refreshKey} />
+      <TemplatePanel currentUserName={currentUserName} />
     </div>
   );
 }

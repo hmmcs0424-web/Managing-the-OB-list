@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect } from "react";
 import { useState } from "react";
-import { CALL_STATUSES, STATUS_LABELS, STATUS_COLORS, type CallStatus } from "@/lib/status";
+import { ENTRY_CALL_STATUSES, STATUS_LABELS, STATUS_COLORS, type CallStatus } from "@/lib/status";
 
 interface ActivityLog {
   id: string;
   status: CallStatus;
   memo: string | null;
-  dispatchSuccess: boolean;
   createdAt: string;
   agent: { id: string; name: string };
   driver: {
@@ -42,7 +41,6 @@ export default function TodayActivity({
   const [agentFilter, setAgentFilter] = useState("");
   const [fromDate, setFromDate] = useState(todayInKorea);
   const [toDate, setToDate] = useState(todayInKorea);
-  const [successFilter, setSuccessFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [filterKey, setFilterKey] = useState(0);
 
@@ -55,7 +53,6 @@ export default function TodayActivity({
         if (agentFilter) params.set("agentId", agentFilter);
         if (fromDate) params.set("from", fromDate);
         if (toDate) params.set("to", toDate);
-        if (successFilter) params.set("success", successFilter);
         if (statusFilter) params.set("status", statusFilter);
       }
       const res = await fetch(`/api/activity/today?${params}`);
@@ -69,7 +66,7 @@ export default function TodayActivity({
     } finally {
       setLoading(false);
     }
-  }, [agentFilter, fromDate, role, statusFilter, successFilter, toDate]);
+  }, [agentFilter, fromDate, role, statusFilter, toDate]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(load, 0);
@@ -79,20 +76,19 @@ export default function TodayActivity({
   async function editMemo(log: ActivityLog) {
     const nextMemo = window.prompt("메모를 수정하세요.", log.memo ?? "");
     if (nextMemo === null) return;
-    let payload: { memo: string; status?: CallStatus; dispatchSuccess?: boolean } = { memo: nextMemo };
+    let payload: { memo: string; status?: CallStatus } = { memo: nextMemo };
     if (role === "ADMIN") {
       const nextStatus = window.prompt(
-        "상태를 입력하세요: ACCEPTED(수락), REJECTED(거절), NO_ANSWER(부재중), PENDING(보류)",
+        "상태를 입력하세요: ACCEPTED(배차 성공), REJECTED(매칭 실패), NO_ANSWER(부재)",
         log.status
       );
       if (nextStatus === null) return;
-      if (!CALL_STATUSES.includes(nextStatus as CallStatus)) {
+      if (!(ENTRY_CALL_STATUSES as readonly string[]).includes(nextStatus)) {
         return window.alert("상태 값을 정확히 입력해주세요.");
       }
       payload = {
         memo: nextMemo,
         status: nextStatus as CallStatus,
-        dispatchSuccess: window.confirm("배차 성공 기록이면 확인을 누르세요."),
       };
     }
     const res = await fetch(`/api/call-logs/${log.id}`, {
@@ -113,19 +109,19 @@ export default function TodayActivity({
     load();
   }
 
-  const successCount = logs.filter((l) => l.dispatchSuccess).length;
+  const successCount = logs.filter((l) => l.status === "ACCEPTED").length;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-bold text-slate-900">{role === "ADMIN" ? "전체 상담 기록" : "오늘 내가 처리한 목록"}</h2>
         <span className="text-sm text-slate-500">
-          총 {logs.length}건 · 배차성공 {successCount}건
+          총 {logs.length}건 · 배차 성공 {successCount}건
         </span>
       </div>
 
       {role === "ADMIN" && (
-        <div className="mb-4 grid gap-2 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="mb-4 grid gap-2 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-5">
           <label className="text-xs font-medium text-slate-600">상담사
             <select value={agentFilter} onChange={(event) => setAgentFilter(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm">
               <option value="">전체 상담사</option>
@@ -138,14 +134,9 @@ export default function TodayActivity({
           <label className="text-xs font-medium text-slate-600">종료일
             <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm" />
           </label>
-          <label className="text-xs font-medium text-slate-600">성공여부
-            <select value={successFilter} onChange={(event) => setSuccessFilter(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm">
-              <option value="">전체</option><option value="true">배차성공</option><option value="false">미성공</option>
-            </select>
-          </label>
           <label className="text-xs font-medium text-slate-600">통화상태
             <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm">
-              <option value="">전체</option><option value="ACCEPTED">긍정</option><option value="REJECTED">거절</option><option value="NO_ANSWER">부재</option>
+              <option value="">전체</option><option value="ACCEPTED">배차 성공</option><option value="REJECTED">매칭 실패</option><option value="NO_ANSWER">부재</option>
             </select>
           </label>
           <div className="flex items-end">
@@ -169,7 +160,6 @@ export default function TodayActivity({
                 <th className="px-3 py-2.5">차량번호</th>
                 <th className="px-3 py-2.5">연락처</th>
                 <th className="px-3 py-2.5">통화상태</th>
-                <th className="px-3 py-2.5">성공여부</th>
                 <th className="px-3 py-2.5">처리자</th>
                 <th className="min-w-[180px] px-3 py-2.5">메모</th>
                 <th className="px-3 py-2.5">처리시간</th>
@@ -196,11 +186,6 @@ export default function TodayActivity({
                   <td className="whitespace-nowrap px-3 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[log.status]}`}>
                       {STATUS_LABELS[log.status]}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <span className={log.dispatchSuccess ? "font-semibold text-blue-700" : "text-slate-400"}>
-                      {log.dispatchSuccess ? "배차성공" : "-"}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-slate-600">{log.agent.name}</td>

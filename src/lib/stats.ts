@@ -21,7 +21,7 @@ export async function getTodayStats(): Promise<TodayStats> {
     where: { createdAt: { gte: kstStartOfToday() } },
     select: {
       createdAt: true,
-      dispatchSuccess: true,
+      status: true,
       agent: { select: { id: true, name: true } },
       driver: { select: { id: true, name: true, phoneDisplay: true, plate: true } },
     },
@@ -48,7 +48,7 @@ export async function getTodayStats(): Promise<TodayStats> {
     const hour = kstHour(log.createdAt);
     const hourBucket = hourlyMap.get(hour) ?? { total: 0, success: 0 };
     hourBucket.total += 1;
-    if (log.dispatchSuccess) hourBucket.success += 1;
+    if (log.status === "ACCEPTED") hourBucket.success += 1;
     hourlyMap.set(hour, hourBucket);
 
     const agentBucket = agentMap.get(log.agent.id) ?? {
@@ -60,7 +60,7 @@ export async function getTodayStats(): Promise<TodayStats> {
     };
     agentBucket.total += 1;
     agentBucket.customerIds.add(log.driver.id);
-    if (log.dispatchSuccess) agentBucket.success += 1;
+    if (log.status === "ACCEPTED") agentBucket.success += 1;
     agentMap.set(log.agent.id, agentBucket);
 
     const customerBucket = customerMap.get(log.driver.id) ?? {
@@ -72,7 +72,7 @@ export async function getTodayStats(): Promise<TodayStats> {
       success: 0,
     };
     customerBucket.total += 1;
-    if (log.dispatchSuccess) customerBucket.success += 1;
+    if (log.status === "ACCEPTED") customerBucket.success += 1;
     customerMap.set(log.driver.id, customerBucket);
   }
 
@@ -87,7 +87,7 @@ export async function getTodayStats(): Promise<TodayStats> {
 
   return {
     total: logs.length,
-    success: logs.filter((l) => l.dispatchSuccess).length,
+    success: logs.filter((l) => l.status === "ACCEPTED").length,
     hourly,
     agents,
     customers,

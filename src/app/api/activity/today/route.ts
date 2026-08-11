@@ -16,7 +16,6 @@ export async function GET(request: Request) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
     const agentId = searchParams.get("agentId");
-    const success = searchParams.get("success");
     const status = searchParams.get("status");
     const createdAt = isAdmin
       ? {
@@ -29,7 +28,6 @@ export async function GET(request: Request) {
       where: {
         agentId: isAdmin ? agentId || undefined : session.user.id,
         createdAt,
-        dispatchSuccess: isAdmin && (success === "true" || success === "false") ? success === "true" : undefined,
         status: isAdmin && status && isCallStatus(status) ? status : undefined,
       },
       orderBy: { createdAt: "desc" },

@@ -59,6 +59,8 @@ export async function POST(request: Request) {
       existing: {
         name: existing.name,
         plate: existing.plate,
+        tonnage: existing.tonnage,
+        vehicleType: existing.vehicleType,
         doNotCall: existing.doNotCall,
         callCount: existing._count.callLogs,
         history: existing.callLogs.map((log) => ({

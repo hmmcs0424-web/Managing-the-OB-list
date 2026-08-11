@@ -1,100 +1,55 @@
 "use client";
 
 import { useState } from "react";
+import { REGION_AREAS, REGIONS, type Province } from "@/lib/regions";
 
-const TRANSFER_TEMPLATE = `■ 운송장번호 : 
-■ 차주 (이름/차량번호/연락처) : 
-■ 내용 : 화물 등록 요청 
-(정지영)`;
+function templates(userName: string, province: Province, area: string) {
+  const region = `${province} ${area.replace(/시$|군$|구$/, "")}`;
+  return [
+    `■ 운송장번호 :\n■ 차주 (이름/차량번호/연락처) :\n■ 내용 : 화물 등록 요청\n(${userName})`,
+    `${region} 지역 미배차 화물 / 배차 OB\n운송장번호 :\n- 배차 성공\n- 부재\n- 배차 거부`,
+    `${region} 지역 미배차 화물 / 배차 OB\n- 매칭 실패`,
+    `${region} 지역 미배차 화물 / 배차 OB\n- 부재`,
+  ];
+}
 
-const CONSULTATION_TEMPLATE = `000 지역 미배차 화물 배차 OB 
-운송장번호 : 
-- 배차 완료 
-- 부재
-- 배차 거부`;
+export default function TemplatePanel({ currentUserName }: { currentUserName: string }) {
+  const [province, setProvince] = useState<Province>("경남");
+  const [area, setArea] = useState<string>(REGION_AREAS.경남[0]);
+  const [values, setValues] = useState(() => templates(currentUserName, "경남", REGION_AREAS.경남[0]));
+  const [copied, setCopied] = useState<number | null>(null);
 
-export default function TemplatePanel() {
-  const [open, setOpen] = useState(false);
-  const [transfer, setTransfer] = useState(TRANSFER_TEMPLATE);
-  const [consultation, setConsultation] = useState(CONSULTATION_TEMPLATE);
-  const [copied, setCopied] = useState<string | null>(null);
+  function applyRegion(nextProvince: Province, nextArea: string) {
+    setProvince(nextProvince);
+    setArea(nextArea);
+    const defaults = templates(currentUserName, nextProvince, nextArea);
+    setValues((current) => current.map((value, index) => index === 0 ? value : `${defaults[index].split("\n")[0]}\n${value.split("\n").slice(1).join("\n")}`));
+  }
 
-  async function copy(label: string, text: string) {
-    await navigator.clipboard.writeText(text);
-    setCopied(label);
+  async function copy(index: number) {
+    await navigator.clipboard.writeText(values[index]);
+    setCopied(index);
     window.setTimeout(() => setCopied(null), 1500);
   }
 
+  const titles = ["이관 템플릿", "배차 상담 템플릿", "매칭 실패 템플릿", "부재 템플릿"];
   return (
-    <div className="fixed bottom-4 right-4 z-40 w-[min(720px,calc(100vw-2rem))]">
-      {open && (
-        <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-slate-900">상담 템플릿</h2>
-              <p className="text-xs text-slate-500">내용을 입력한 뒤 그대로 복사할 수 있습니다.</p>
-            </div>
-            {copied && <span className="text-xs font-semibold text-emerald-600">{copied} 복사 완료</span>}
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <TemplateEditor
-              title="이관 템플릿"
-              value={transfer}
-              onChange={setTransfer}
-              onCopy={() => copy("이관 템플릿", transfer)}
-              onReset={() => setTransfer(TRANSFER_TEMPLATE)}
-            />
-            <TemplateEditor
-              title="상담 내용 작성 템플릿"
-              value={consultation}
-              onChange={setConsultation}
-              onCopy={() => copy("상담 템플릿", consultation)}
-              onReset={() => setConsultation(CONSULTATION_TEMPLATE)}
-            />
-          </div>
+    <section className="sticky bottom-0 z-20 rounded-2xl border border-slate-300 bg-white/95 p-5 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div><h2 className="font-bold text-slate-900">상담 템플릿</h2><p className="text-xs text-slate-500">지역을 선택하면 상담 이력 템플릿 첫 줄에 자동 반영됩니다.</p></div>
+        <div className="flex gap-2">
+          <label className="text-xs font-medium text-slate-600">광역지역<select value={province} onChange={(event) => { const next = event.target.value as Province; applyRegion(next, REGION_AREAS[next][0]); }} className="mt-1 block rounded-md border border-slate-300 px-2 py-1.5 text-sm">{REGIONS.map((name) => <option key={name}>{name}</option>)}</select></label>
+          <label className="text-xs font-medium text-slate-600">세부지역<select value={area} onChange={(event) => applyRegion(province, event.target.value)} className="mt-1 block rounded-md border border-slate-300 px-2 py-1.5 text-sm">{REGION_AREAS[province].map((name) => <option key={name}>{name}</option>)}</select></label>
         </div>
-      )}
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:bg-slate-700"
-        >
-          {open ? "템플릿 닫기" : "상담 템플릿 열기"}
-        </button>
       </div>
-    </div>
-  );
-}
-
-function TemplateEditor({
-  title,
-  value,
-  onChange,
-  onCopy,
-  onReset,
-}: {
-  title: string;
-  value: string;
-  onChange: (value: string) => void;
-  onCopy: () => void;
-  onReset: () => void;
-}) {
-  return (
-    <section className="rounded-xl border border-slate-200 p-3">
-      <h3 className="mb-2 text-sm font-bold text-slate-800">{title}</h3>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-40 w-full resize-none rounded-lg border border-slate-300 p-3 text-sm leading-6 outline-none focus:border-blue-500"
-      />
-      <div className="mt-2 flex gap-2">
-        <button type="button" onClick={onCopy} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
-          전체 복사
-        </button>
-        <button type="button" onClick={onReset} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-          템플릿 초기화
-        </button>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {values.map((value, index) => (
+          <div key={titles[index]} className="rounded-xl border border-slate-200 p-3">
+            <h3 className="mb-2 text-sm font-bold text-slate-800">{titles[index]}</h3>
+            <textarea value={value} onChange={(event) => setValues((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} className="h-40 w-full resize-none rounded-lg border border-slate-300 p-3 text-sm leading-6 outline-none focus:border-blue-500" />
+            <div className="mt-2 flex gap-2"><button type="button" onClick={() => copy(index)} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white">{copied === index ? "복사 완료" : "전체 복사"}</button><button type="button" onClick={() => setValues((current) => current.map((item, itemIndex) => itemIndex === index ? templates(currentUserName, province, area)[index] : item))} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600">초기화</button></div>
+          </div>
+        ))}
       </div>
     </section>
   );

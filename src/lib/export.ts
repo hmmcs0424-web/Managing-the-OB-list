@@ -18,10 +18,12 @@ export async function buildDriverWorkbook(): Promise<Buffer> {
     return {
       고객명: driver.name,
       차량번호: driver.plate ?? "",
+      톤수: driver.tonnage ?? "",
+      차종: driver.vehicleType ?? "",
       전화번호: driver.phoneDisplay,
       "재전화 거부": driver.doNotCall ? "Y" : "N",
       "총 통화 건수": driver.callLogs.length,
-      "배차 건수": driver.callLogs.filter((log) => log.dispatchSuccess).length,
+      "배차 건수": driver.callLogs.filter((log) => log.status === "ACCEPTED").length,
       "최근 통화 상태": latest ? STATUS_LABELS[latest.status as CallStatus] : "",
       "최근 상담사": latest?.agent.name ?? "",
       "최근 작성일시": latest?.createdAt ?? null,
@@ -37,9 +39,10 @@ export async function buildDriverWorkbook(): Promise<Buffer> {
       상담사: log.agent.name,
       고객명: driver.name,
       차량번호: driver.plate ?? "",
+      톤수: driver.tonnage ?? "",
+      차종: driver.vehicleType ?? "",
       전화번호: driver.phoneDisplay,
       "통화 상태": STATUS_LABELS[log.status as CallStatus],
-      "배차 성공": log.dispatchSuccess ? "Y" : "N",
       "재전화 거부": driver.doNotCall ? "Y" : "N",
       메모: log.memo ?? "",
     }))
@@ -56,7 +59,7 @@ export async function buildDriverWorkbook(): Promise<Buffer> {
       };
       current["OB 건수"] += 1;
       current["고객 수"].add(row.전화번호);
-      if (row["배차 성공"] === "Y") current["배차 건수"] += 1;
+      if (row["통화 상태"] === STATUS_LABELS.ACCEPTED) current["배차 건수"] += 1;
       map.set(key, current);
       return map;
     }, new Map<string, { 상담사: string; "OB 건수": number; "고객 수": Set<string>; "배차 건수": number }>()).values()
@@ -84,7 +87,7 @@ export async function buildDriverWorkbook(): Promise<Buffer> {
 
   setColumnFormat(workbook.Sheets["OB 원시 데이터"], rawRows.length, 1, "yyyy-mm-dd hh:mm:ss");
   setColumnFormat(workbook.Sheets["상담사별 요약"], agentRows.length, 4, "0.0%");
-  setColumnFormat(workbook.Sheets["고객별 요약"], summaryRows.length, 8, "yyyy-mm-dd hh:mm:ss");
+  setColumnFormat(workbook.Sheets["고객별 요약"], summaryRows.length, 10, "yyyy-mm-dd hh:mm:ss");
 
   return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }

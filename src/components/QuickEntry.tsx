@@ -3,14 +3,14 @@
 import { useRef, useState } from "react";
 import { parsePasteText } from "@/lib/parse";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { STATUS_LABELS, STATUS_COLORS, CALL_STATUSES, ENTRY_CALL_STATUSES, type CallStatus } from "@/lib/status";
+import { STATUS_LABELS, STATUS_COLORS, ENTRY_CALL_STATUSES, type CallStatus } from "@/lib/status";
+import { TONNAGE_OPTIONS, VEHICLE_TYPE_OPTIONS } from "@/lib/vehicle";
 
 interface HistoryEntry {
   id: string;
   agentId: string;
   status: CallStatus;
   memo: string | null;
-  dispatchSuccess: boolean;
   agentName: string;
   createdAt: string;
 }
@@ -28,6 +28,8 @@ interface CheckResult {
   existing?: {
     name: string;
     plate: string | null;
+    tonnage: string | null;
+    vehicleType: string | null;
     doNotCall: boolean;
     callCount: number;
     history: HistoryEntry[];
@@ -38,6 +40,8 @@ interface SearchDriver {
   id: string;
   name: string;
   plate: string | null;
+  tonnage: string | null;
+  vehicleType: string | null;
   phoneDisplay: string;
   doNotCall: boolean;
   callCount: number;
@@ -69,15 +73,17 @@ export default function QuickEntry({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedHistory, setExpandedHistory] = useState<HistoryEntry[] | null>(null);
 
-  const [status, setStatus] = useState<CallStatus>("PENDING");
-  const [dispatchSuccess, setDispatchSuccess] = useState(false);
+  const [status, setStatus] = useState<CallStatus>("ACCEPTED");
+  const [tonnage, setTonnage] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
   const [doNotCall, setDoNotCall] = useState(false);
   const [memo, setMemo] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   function resetForm() {
-    setStatus("PENDING");
-    setDispatchSuccess(false);
+    setStatus("ACCEPTED");
+    setTonnage("");
+    setVehicleType("");
     setDoNotCall(false);
     setMemo("");
   }
@@ -125,6 +131,8 @@ export default function QuickEntry({
         resetForm();
         if (result.kind === "duplicate" && result.existing) {
           setDoNotCall(result.existing.doNotCall);
+          setTonnage(result.existing.tonnage ?? "");
+          setVehicleType(result.existing.vehicleType ?? "");
         }
       } else {
         const res = await fetch(`/api/drivers?q=${encodeURIComponent(text)}`);
@@ -169,11 +177,12 @@ export default function QuickEntry({
             {
               name: entry.name,
               plate: entry.plate,
+              tonnage,
+              vehicleType,
               phoneRaw: entry.phoneRaw,
               phoneNormalized: entry.phoneNormalized,
               memo,
               status,
-              dispatchSuccess,
               doNotCall,
             },
           ],
@@ -214,7 +223,6 @@ export default function QuickEntry({
           id: string;
           status: CallStatus;
           memo: string | null;
-          dispatchSuccess: boolean;
           createdAt: string;
           agent: { id: string; name: string };
         }) => ({
@@ -222,7 +230,6 @@ export default function QuickEntry({
           agentId: log.agent.id,
           status: log.status,
           memo: log.memo,
-          dispatchSuccess: log.dispatchSuccess,
           agentName: log.agent.name,
           createdAt: log.createdAt,
         })
@@ -233,20 +240,19 @@ export default function QuickEntry({
   async function editMemo(log: HistoryEntry) {
     const nextMemo = window.prompt("메모를 수정하세요.", log.memo ?? "");
     if (nextMemo === null) return;
-    let payload: { memo: string; status?: CallStatus; dispatchSuccess?: boolean } = { memo: nextMemo };
+    let payload: { memo: string; status?: CallStatus } = { memo: nextMemo };
     if (role === "ADMIN") {
       const nextStatus = window.prompt(
-        "상태를 입력하세요: ACCEPTED(수락), REJECTED(거절), NO_ANSWER(부재중), PENDING(보류)",
+        "상태를 입력하세요: ACCEPTED(배차 성공), REJECTED(매칭 실패), NO_ANSWER(부재)",
         log.status
       );
       if (nextStatus === null) return;
-      if (!CALL_STATUSES.includes(nextStatus as CallStatus)) {
+      if (!(ENTRY_CALL_STATUSES as readonly string[]).includes(nextStatus)) {
         return window.alert("상태 값을 정확히 입력해주세요.");
       }
       payload = {
         memo: nextMemo,
         status: nextStatus as CallStatus,
-        dispatchSuccess: window.confirm("배차 성공 기록이면 확인을 누르세요."),
       };
     }
     const res = await fetch(`/api/call-logs/${log.id}`, {
@@ -274,13 +280,36 @@ export default function QuickEntry({
     if (plate === null) return;
     const phone = window.prompt("전화번호", driver.phoneDisplay);
     if (phone === null) return;
+    const nextTonnage = window.prompt("차량 톤수", driver.tonnage ?? "");
+    if (nextTonnage === null) return;
+    const nextVehicleType = window.prompt("차종", driver.vehicleType ?? "");
+    if (nextVehicleType === null) return;
     const res = await fetch(`/api/drivers/${driver.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, plate, phone, doNotCall: driver.doNotCall }),
+      body: JSON.stringify({ name, plate, phone, tonnage: nextTonnage, vehicleType: nextVehicleType, doNotCall: driver.doNotCall }),
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) return window.alert(data?.error ?? "차주 정보 수정에 실패했습니다.");
+    handleLookup();
+  }
+
+  async function releaseDoNotCall(driver: SearchDriver) {
+    if (!window.confirm(`${driver.name} 차주의 재전화 거부를 해제할까요?`)) return;
+    const res = await fetch(`/api/drivers/${driver.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: driver.name,
+        plate: driver.plate,
+        phone: driver.phoneDisplay,
+        tonnage: driver.tonnage,
+        vehicleType: driver.vehicleType,
+        doNotCall: false,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? "재전화 거부 해제에 실패했습니다.");
     handleLookup();
   }
 
@@ -330,7 +359,7 @@ export default function QuickEntry({
                 이력 {entry.existing?.callCount}회
               </span>
             )}
-            {(entry.kind === "new" ? doNotCall : entry.existing?.doNotCall) && (
+            {doNotCall && (
               <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
                 🚫 재전화 거부
               </span>
@@ -348,11 +377,6 @@ export default function QuickEntry({
                     >
                       {STATUS_LABELS[log.status]}
                     </span>
-                    {log.dispatchSuccess && (
-                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                        배차성공
-                      </span>
-                    )}
                     <span className="text-slate-600">작성자: {log.agentName}</span>
                     <span className="text-slate-400">
                       {new Date(log.createdAt).toLocaleString("ko-KR")}
@@ -386,21 +410,22 @@ export default function QuickEntry({
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-1.5 text-sm">
-              <input
-                type="checkbox"
-                checked={dispatchSuccess}
-                onChange={(e) => setDispatchSuccess(e.target.checked)}
-              />
-              배차 성공
-            </label>
+            <select value={tonnage} onChange={(e) => setTonnage(e.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+              <option value="">톤수 선택</option>
+              {TONNAGE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+            <select value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+              <option value="">차종 선택</option>
+              {VEHICLE_TYPE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
             <label className="flex items-center gap-1.5 text-sm text-rose-600">
               <input
                 type="checkbox"
                 checked={doNotCall}
                 onChange={(e) => setDoNotCall(e.target.checked)}
+                disabled={entry.existing?.doNotCall === true && role !== "ADMIN"}
               />
-              재전화 거부로 표시
+              {entry.existing?.doNotCall && role === "ADMIN" ? "재전화 거부 해제 가능" : "재전화 거부로 표시"}
             </label>
             <input
               className="min-w-[180px] flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
@@ -439,6 +464,8 @@ export default function QuickEntry({
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-slate-900">{d.name}</span>
                       {d.plate && <span className="text-sm text-slate-500">{d.plate}</span>}
+                      {d.tonnage && <span className="text-sm text-slate-500">{d.tonnage}</span>}
+                      {d.vehicleType && <span className="text-sm text-slate-500">{d.vehicleType}</span>}
                       <span className="text-sm text-slate-500">{d.phoneDisplay}</span>
                       {d.callCount > 1 && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
@@ -464,6 +491,7 @@ export default function QuickEntry({
                       <button type="button" onClick={() => editDriver(d)} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
                         차주 정보 수정
                       </button>
+                      {d.doNotCall && <button type="button" onClick={() => releaseDoNotCall(d)} className="rounded border border-emerald-300 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50">재전화 거부 해제</button>}
                       <button type="button" onClick={() => deleteDriver(d)} className="rounded border border-rose-300 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50">
                         차주 전체 삭제
                       </button>
@@ -481,11 +509,6 @@ export default function QuickEntry({
                               >
                                 {STATUS_LABELS[log.status]}
                               </span>
-                              {log.dispatchSuccess && (
-                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                                  배차성공
-                                </span>
-                              )}
                               <span className="text-slate-600">작성자: {log.agentName}</span>
                               <span className="text-slate-400">
                                 {new Date(log.createdAt).toLocaleString("ko-KR")}

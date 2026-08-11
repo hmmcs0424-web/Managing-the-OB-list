@@ -12,7 +12,7 @@ export default async function MyStatsPage() {
     orderBy: { createdAt: "desc" },
     include: { driver: { select: { name: true, phoneDisplay: true } } },
   });
-  const success = logs.filter((log) => log.dispatchSuccess).length;
+  const success = logs.filter((log) => log.status === "ACCEPTED").length;
   const customers = new Set(logs.map((log) => log.driverId)).size;
   const rate = logs.length ? Math.round((success / logs.length) * 100) : 0;
 
@@ -25,8 +25,8 @@ export default async function MyStatsPage() {
         ))}
       </div>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[680px] text-sm"><thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-4 py-3">작성일시</th><th className="px-4 py-3">고객명</th><th className="px-4 py-3">연락처</th><th className="px-4 py-3">통화상태</th><th className="px-4 py-3">성공여부</th><th className="px-4 py-3">메모</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{logs.map((log) => <tr key={log.id}><td className="whitespace-nowrap px-4 py-3 text-slate-500">{log.createdAt.toLocaleString('ko-KR')}</td><td className="px-4 py-3 font-medium">{log.driver.name}</td><td className="px-4 py-3">{log.driver.phoneDisplay}</td><td className="px-4 py-3">{STATUS_LABELS[log.status as CallStatus]}</td><td className="px-4 py-3">{log.dispatchSuccess ? '배차성공' : '-'}</td><td className="px-4 py-3">{log.memo || '-'}</td></tr>)}</tbody>
+        <table className="w-full min-w-[620px] text-sm"><thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-4 py-3">작성일시</th><th className="px-4 py-3">고객명</th><th className="px-4 py-3">연락처</th><th className="px-4 py-3">통화상태</th><th className="px-4 py-3">메모</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">{logs.map((log) => <tr key={log.id}><td className="whitespace-nowrap px-4 py-3 text-slate-500">{log.createdAt.toLocaleString('ko-KR')}</td><td className="px-4 py-3 font-medium">{log.driver.name}</td><td className="px-4 py-3">{log.driver.phoneDisplay}</td><td className="px-4 py-3">{STATUS_LABELS[log.status as CallStatus]}</td><td className="px-4 py-3">{log.memo || '-'}</td></tr>)}</tbody>
         </table>
       </div>
     </div>

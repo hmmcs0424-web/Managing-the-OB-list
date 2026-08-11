@@ -23,8 +23,10 @@ export async function PATCH(
   const body = await request.json().catch(() => null);
   const data: { memo?: string | null; status?: "ACCEPTED" | "REJECTED" | "NO_ANSWER" | "PENDING"; dispatchSuccess?: boolean } = {};
   if (typeof body?.memo === "string") data.memo = body.memo.trim() || null;
-  if (isAdmin && typeof body?.status === "string" && isCallStatus(body.status)) data.status = body.status;
-  if (isAdmin && typeof body?.dispatchSuccess === "boolean") data.dispatchSuccess = body.dispatchSuccess;
+  if (isAdmin && typeof body?.status === "string" && isCallStatus(body.status)) {
+    data.status = body.status;
+    data.dispatchSuccess = body.status === "ACCEPTED";
+  }
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "수정할 내용이 없습니다." }, { status: 400 });
   }

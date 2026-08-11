@@ -36,6 +36,8 @@ export async function GET(request: Request) {
     id: d.id,
     name: d.name,
     plate: d.plate,
+    tonnage: d.tonnage,
+    vehicleType: d.vehicleType,
     phoneDisplay: d.phoneDisplay,
     doNotCall: d.doNotCall,
     updatedAt: d.updatedAt,

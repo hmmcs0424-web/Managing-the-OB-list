@@ -7,11 +7,12 @@ import { isCallStatus } from "@/lib/status";
 interface EntryInput {
   name?: string;
   plate?: string;
+  tonnage?: string;
+  vehicleType?: string;
   phoneRaw?: string;
   phoneNormalized?: string;
   memo?: string;
   status?: string;
-  dispatchSuccess?: boolean;
   doNotCall?: boolean;
 }
 
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
     const phoneNormalized = entry.phoneNormalized
       ? normalizePhone(entry.phoneNormalized)
       : "";
-    const status = entry.status ?? "PENDING";
+    const status = entry.status ?? "ACCEPTED";
 
     if (!name || phoneNormalized.length < 9 || !isCallStatus(status)) {
       return [];
@@ -41,9 +42,11 @@ export async function POST(request: Request) {
 
     const phoneDisplay = formatPhoneDisplay(entry.phoneRaw ?? phoneNormalized);
     const plate = entry.plate?.trim() || null;
+    const tonnage = entry.tonnage?.trim() || null;
+    const vehicleType = entry.vehicleType?.trim() || null;
     const doNotCall = entry.doNotCall === true;
 
-    return [{ entry, name, phoneNormalized, phoneDisplay, plate, doNotCall, status }];
+    return [{ entry, name, phoneNormalized, phoneDisplay, plate, tonnage, vehicleType, doNotCall, status }];
   });
 
   if (validEntries.length === 0) {
@@ -59,12 +62,16 @@ export async function POST(request: Request) {
           update: {
             name: item.name,
             plate: item.plate,
+            tonnage: item.tonnage,
+            vehicleType: item.vehicleType,
             phoneDisplay: item.phoneDisplay,
             doNotCall: item.doNotCall,
           },
           create: {
             name: item.name,
             plate: item.plate,
+            tonnage: item.tonnage,
+            vehicleType: item.vehicleType,
             phoneNormalized: item.phoneNormalized,
             phoneDisplay: item.phoneDisplay,
             doNotCall: item.doNotCall,
@@ -76,7 +83,7 @@ export async function POST(request: Request) {
             agentId: session.user.id,
             memo: item.entry.memo?.trim() || null,
             status: item.status,
-            dispatchSuccess: item.entry.dispatchSuccess === true,
+            dispatchSuccess: item.status === "ACCEPTED",
           },
         });
         ids.push(driver.id);
