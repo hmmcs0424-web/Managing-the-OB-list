@@ -15,7 +15,7 @@ const adminLinks: SidebarLink[] = [
   { href: "/", label: "상담메모" },
   { href: "/admin/stats", label: "대시보드" },
   { href: "/admin/users", label: "계정관리" },
-  { href: "/regions", label: "지역 확인" },
+  { href: "/admin/regions", label: "지역 배정" },
 ];
 
 export default function Sidebar({ role }: { role: "AGENT" | "ADMIN" }) {

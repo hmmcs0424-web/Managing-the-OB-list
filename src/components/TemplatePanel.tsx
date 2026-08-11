@@ -13,10 +13,11 @@ function templates(userName: string, province: Province, area: string) {
   ];
 }
 
-export default function TemplatePanel({ currentUserName }: { currentUserName: string }) {
-  const [province, setProvince] = useState<Province>("경남");
-  const [area, setArea] = useState<string>(REGION_AREAS.경남[0]);
-  const [values, setValues] = useState(() => templates(currentUserName, "경남", REGION_AREAS.경남[0]));
+export default function TemplatePanel({ currentUserName, assignedRegions }: { currentUserName: string; assignedRegions: Province[] }) {
+  const initialProvince = assignedRegions[0] ?? "경남";
+  const [province, setProvince] = useState<Province>(initialProvince);
+  const [area, setArea] = useState<string>(REGION_AREAS[initialProvince][0]);
+  const [values, setValues] = useState(() => templates(currentUserName, initialProvince, REGION_AREAS[initialProvince][0]));
   const [copied, setCopied] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -37,10 +38,10 @@ export default function TemplatePanel({ currentUserName }: { currentUserName: st
   return (
     <section className={`sticky bottom-0 z-20 rounded-2xl border border-slate-300 bg-white/95 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur ${open ? "p-5" : "p-3"}`}>
       <div className={`flex flex-wrap items-end justify-between gap-3 ${open ? "mb-4" : ""}`}>
-        <div><h2 className="font-bold text-slate-900">상담 템플릿</h2>{open && <p className="text-xs text-slate-500">지역을 선택하면 상담 이력 템플릿 첫 줄에 자동 반영됩니다.</p>}</div>
+        <div><h2 className="font-bold text-slate-900">상담 템플릿</h2>{open && <p className="text-xs text-slate-500">{assignedRegions.length ? "배정받은 광역지역에서 선택하면 템플릿 첫 줄에 자동 반영됩니다." : "관리자에게 배정받은 지역이 없습니다."}</p>}</div>
         <div className="flex items-end gap-2">
           {open && <>
-          <label className="text-xs font-medium text-slate-600">광역지역<select value={province} onChange={(event) => { const next = event.target.value as Province; applyRegion(next, REGION_AREAS[next][0]); }} className="mt-1 block rounded-md border border-slate-300 px-2 py-1.5 text-sm">{REGIONS.map((name) => <option key={name}>{name}</option>)}</select></label>
+          <label className="text-xs font-medium text-slate-600">광역지역<select value={province} disabled={assignedRegions.length === 0} onChange={(event) => { const next = event.target.value as Province; applyRegion(next, REGION_AREAS[next][0]); }} className="mt-1 block rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100">{(assignedRegions.length ? assignedRegions : REGIONS).map((name) => <option key={name}>{name}</option>)}</select></label>
           <label className="text-xs font-medium text-slate-600">세부지역<select value={area} onChange={(event) => applyRegion(province, event.target.value)} className="mt-1 block rounded-md border border-slate-300 px-2 py-1.5 text-sm">{REGION_AREAS[province].map((name) => <option key={name}>{name}</option>)}</select></label>
           </>}
           <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">{open ? "접기" : "펼치기"}</button>
