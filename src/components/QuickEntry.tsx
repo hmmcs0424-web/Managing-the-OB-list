@@ -334,13 +334,13 @@ export default function QuickEntry({
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-1 text-base font-bold text-slate-900">차주 조회 / 등록</h2>
       <p className="mb-3 text-sm text-slate-500">
-        <span className="font-medium">이름, 차량번호, 전화번호</span>를 붙여넣고 Enter — 신규면
+        <span className="font-medium">이름, 전화번호</span>를 붙여넣고 Enter — 신규면
         등록 화면이, 기존이면 이력이 바로 뜹니다. 이름/번호 일부만 입력하면 검색됩니다.
       </p>
       <input
         ref={inputRef}
         className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-mono outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        placeholder="정지영, 제주90바1417, 01012345678"
+        placeholder="정지영    010-1234-5678"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}

@@ -178,7 +178,7 @@ export default function TodayActivity({
                     )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-slate-600">
-                    {log.driver.plate ?? "-"}
+                    {log.driver.plate ?? ""}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-slate-600">
                     {log.driver.phoneDisplay}
