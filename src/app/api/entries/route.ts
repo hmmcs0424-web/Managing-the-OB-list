@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { formatPhoneDisplay, normalizePhone } from "@/lib/phone";
 import { isCallStatus } from "@/lib/status";
+import { MEMO_OPTIONS } from "@/lib/memo";
 
 interface EntryInput {
   name?: string;
@@ -12,6 +13,7 @@ interface EntryInput {
   phoneRaw?: string;
   phoneNormalized?: string;
   memo?: string;
+  memoCategory?: string | null;
   status?: string;
   doNotCall?: boolean;
 }
@@ -45,8 +47,11 @@ export async function POST(request: Request) {
     const tonnage = entry.tonnage?.trim() || null;
     const vehicleType = entry.vehicleType?.trim() || null;
     const doNotCall = entry.doNotCall === true;
+    const memoCategory = (MEMO_OPTIONS as readonly string[]).includes(entry.memoCategory ?? "")
+      ? entry.memoCategory!
+      : null;
 
-    return [{ entry, name, phoneNormalized, phoneDisplay, plate, tonnage, vehicleType, doNotCall, status }];
+    return [{ entry, name, phoneNormalized, phoneDisplay, plate, tonnage, vehicleType, doNotCall, status, memoCategory }];
   });
 
   if (validEntries.length === 0) {
@@ -82,6 +87,7 @@ export async function POST(request: Request) {
             driverId: driver.id,
             agentId: session.user.id,
             memo: item.entry.memo?.trim() || null,
+            memoCategory: item.memoCategory,
             status: item.status,
             dispatchSuccess: item.status === "ACCEPTED",
           },

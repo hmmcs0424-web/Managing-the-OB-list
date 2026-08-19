@@ -1,0 +1,2 @@
+ALTER TABLE "CallLog"
+ADD COLUMN IF NOT EXISTS "memoCategory" TEXT;

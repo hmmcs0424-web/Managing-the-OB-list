@@ -11,6 +11,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
   const to = validDate(params.to) ? params.to! : month.to;
   const stats = await getPerformanceStats(from, to);
   const rate = (total: number, success: number) => total === 0 ? "-" : `${Math.round((success / total) * 100)}%`;
+  const memoTotal = stats.memoCategories.reduce((sum, item) => sum + item.count, 0);
 
   return (
     <div className="space-y-6">
@@ -36,6 +37,12 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
       <StatsTable title="일자별 현황" empty={stats.daily.length === 0} headers={["일자", "처리 건수", "배차 성공", "성공률"]} rows={stats.daily.map((item) => [item.date, item.total, item.success, rate(item.total, item.success)])} />
       <StatsTable title="시간대별 현황" empty={stats.hourly.length === 0} headers={["시간대", "처리 건수", "배차 성공", "성공률"]} rows={stats.hourly.map((item) => [`${item.hour}시`, item.total, item.success, rate(item.total, item.success)])} />
       <StatsTable title="상담사별 현황" empty={stats.agents.length === 0} headers={["상담사", "OB 건수", "통화 고객 수", "배차 성공", "성공률"]} rows={stats.agents.map((item) => [item.agentName, item.total, item.customers, item.success, rate(item.total, item.success)])} />
+      <StatsTable
+        title="메모 사유별 현황"
+        empty={stats.memoCategories.length === 0}
+        headers={["사유", "건수", "비율"]}
+        rows={stats.memoCategories.map((item) => [item.category, item.count, rate(memoTotal, item.count)])}
+      />
     </div>
   );
 }

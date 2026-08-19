@@ -5,7 +5,7 @@ import { parsePasteText } from "@/lib/parse";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { STATUS_LABELS, STATUS_COLORS, ENTRY_CALL_STATUSES, type CallStatus } from "@/lib/status";
 import { TONNAGE_OPTIONS, VEHICLE_TYPE_OPTIONS } from "@/lib/vehicle";
-import { MEMO_OPTIONS, MEMO_OTHER_OPTION } from "@/lib/memo";
+import { MEMO_OPTIONS } from "@/lib/memo";
 
 interface HistoryEntry {
   id: string;
@@ -79,10 +79,11 @@ export default function QuickEntry({
   const [vehicleType, setVehicleType] = useState("");
   const [doNotCall, setDoNotCall] = useState(false);
   const [memoChoice, setMemoChoice] = useState("");
-  const [memoOther, setMemoOther] = useState("");
+  const [memoNote, setMemoNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const memo = memoChoice === MEMO_OTHER_OPTION ? memoOther.trim() : memoChoice;
+  const memo = [memoChoice, memoNote.trim()].filter(Boolean).join(" - ");
+  const memoCategory = memoChoice || null;
 
   function resetForm() {
     setStatus("ACCEPTED");
@@ -90,7 +91,7 @@ export default function QuickEntry({
     setVehicleType("");
     setDoNotCall(false);
     setMemoChoice("");
-    setMemoOther("");
+    setMemoNote("");
   }
 
   async function handleLookup() {
@@ -187,6 +188,7 @@ export default function QuickEntry({
               phoneRaw: entry.phoneRaw,
               phoneNormalized: entry.phoneNormalized,
               memo,
+              memoCategory,
               status,
               doNotCall,
             },
@@ -444,14 +446,12 @@ export default function QuickEntry({
                 </option>
               ))}
             </select>
-            {memoChoice === MEMO_OTHER_OPTION && (
-              <input
-                className="min-w-[180px] flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                placeholder="메모 직접 입력"
-                value={memoOther}
-                onChange={(e) => setMemoOther(e.target.value)}
-              />
-            )}
+            <input
+              className="min-w-[180px] flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              placeholder="추가 메모 (선택)"
+              value={memoNote}
+              onChange={(e) => setMemoNote(e.target.value)}
+            />
           </div>
 
           <button

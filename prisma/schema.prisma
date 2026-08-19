@@ -57,6 +57,7 @@ model CallLog {
   agent           User       @relation(fields: [agentId], references: [id])
   agentId         String
   memo            String?
+  memoCategory    String?
   status          CallStatus @default(PENDING)
   dispatchSuccess Boolean    @default(false)
   createdAt       DateTime   @default(now())
