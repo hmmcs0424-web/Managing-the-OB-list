@@ -5,6 +5,7 @@ import { parsePasteText } from "@/lib/parse";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { STATUS_LABELS, STATUS_COLORS, ENTRY_CALL_STATUSES, type CallStatus } from "@/lib/status";
 import { TONNAGE_OPTIONS, VEHICLE_TYPE_OPTIONS } from "@/lib/vehicle";
+import { MEMO_OPTIONS, MEMO_OTHER_OPTION } from "@/lib/memo";
 
 interface HistoryEntry {
   id: string;
@@ -77,15 +78,19 @@ export default function QuickEntry({
   const [tonnage, setTonnage] = useState("");
   const [vehicleType, setVehicleType] = useState("");
   const [doNotCall, setDoNotCall] = useState(false);
-  const [memo, setMemo] = useState("");
+  const [memoChoice, setMemoChoice] = useState("");
+  const [memoOther, setMemoOther] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const memo = memoChoice === MEMO_OTHER_OPTION ? memoOther.trim() : memoChoice;
 
   function resetForm() {
     setStatus("ACCEPTED");
     setTonnage("");
     setVehicleType("");
     setDoNotCall(false);
-    setMemo("");
+    setMemoChoice("");
+    setMemoOther("");
   }
 
   async function handleLookup() {
@@ -427,12 +432,26 @@ export default function QuickEntry({
               />
               {entry.existing?.doNotCall && role === "ADMIN" ? "재전화 거부 해제 가능" : "재전화 거부로 표시"}
             </label>
-            <input
+            <select
+              value={memoChoice}
+              onChange={(e) => setMemoChoice(e.target.value)}
               className="min-w-[180px] flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-              placeholder="메모 (선택)"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-            />
+            >
+              <option value="">메모 선택 (선택)</option>
+              {MEMO_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {memoChoice === MEMO_OTHER_OPTION && (
+              <input
+                className="min-w-[180px] flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                placeholder="메모 직접 입력"
+                value={memoOther}
+                onChange={(e) => setMemoOther(e.target.value)}
+              />
+            )}
           </div>
 
           <button
