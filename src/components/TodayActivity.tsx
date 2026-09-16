@@ -109,6 +109,20 @@ export default function TodayActivity({
     load();
   }
 
+  async function toggleDoNotCall(driver: ActivityLog["driver"]) {
+    const nextValue = !driver.doNotCall;
+    const action = nextValue ? "설정" : "해제";
+    if (!window.confirm(`${driver.name} 차주의 재전화 거부를 ${action}할까요?`)) return;
+    const res = await fetch(`/api/drivers/${driver.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doNotCall: nextValue }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return window.alert(data?.error ?? `재전화 거부 ${action}에 실패했습니다.`);
+    load();
+  }
+
   const successCount = logs.filter((l) => l.status === "ACCEPTED").length;
 
   return (
@@ -197,6 +211,13 @@ export default function TodayActivity({
                   </td>
                   <td className="whitespace-nowrap px-3 py-3">
                     <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleDoNotCall(log.driver)}
+                        className={`rounded border px-2 py-1 text-xs ${log.driver.doNotCall ? "border-emerald-300 text-emerald-700" : "border-rose-300 text-rose-600"} hover:bg-white`}
+                      >
+                        {log.driver.doNotCall ? "재전화 거부 해제" : "재전화 거부 설정"}
+                      </button>
                       {(role === "ADMIN" || log.agent.id === currentUserId) && (
                         <button
                           type="button"

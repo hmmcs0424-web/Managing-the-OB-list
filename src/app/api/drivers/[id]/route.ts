@@ -31,12 +31,26 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (session?.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
+  if (!session?.user) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
   const { id } = await params;
   const body = await request.json().catch(() => null);
+
+  if (session.user.role !== "ADMIN") {
+    const keys = body && typeof body === "object" ? Object.keys(body) : [];
+    if (typeof body?.doNotCall !== "boolean" || keys.some((key) => key !== "doNotCall")) {
+      return NextResponse.json({ error: "재전화 거부 상태만 수정할 수 있습니다." }, { status: 403 });
+    }
+
+    const driver = await prisma.driver.update({
+      where: { id },
+      data: { doNotCall: body.doNotCall },
+    });
+    return NextResponse.json({ driver });
+  }
+
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const phoneNormalized = normalizePhone(typeof body?.phone === "string" ? body.phone : "");
   if (!name || phoneNormalized.length < 9) {

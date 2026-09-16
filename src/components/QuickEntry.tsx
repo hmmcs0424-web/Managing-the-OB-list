@@ -306,14 +306,7 @@ export default function QuickEntry({
     const res = await fetch(`/api/drivers/${driver.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: driver.name,
-        plate: driver.plate,
-        phone: driver.phoneDisplay,
-        tonnage: driver.tonnage,
-        vehicleType: driver.vehicleType,
-        doNotCall: false,
-      }),
+      body: JSON.stringify({ doNotCall: false }),
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) return window.alert(data?.error ?? "재전화 거부 해제에 실패했습니다.");
@@ -430,9 +423,8 @@ export default function QuickEntry({
                 type="checkbox"
                 checked={doNotCall}
                 onChange={(e) => setDoNotCall(e.target.checked)}
-                disabled={entry.existing?.doNotCall === true && role !== "ADMIN"}
               />
-              {entry.existing?.doNotCall && role === "ADMIN" ? "재전화 거부 해제 가능" : "재전화 거부로 표시"}
+              재전화 거부
             </label>
             <select
               value={memoChoice}
@@ -505,17 +497,17 @@ export default function QuickEntry({
                       </span>
                     )}
                   </button>
-                  {role === "ADMIN" && (
-                    <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex gap-2">
+                    {d.doNotCall && <button type="button" onClick={() => releaseDoNotCall(d)} className="rounded border border-emerald-300 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50">재전화 거부 해제</button>}
+                    {role === "ADMIN" && <>
                       <button type="button" onClick={() => editDriver(d)} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
                         차주 정보 수정
                       </button>
-                      {d.doNotCall && <button type="button" onClick={() => releaseDoNotCall(d)} className="rounded border border-emerald-300 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50">재전화 거부 해제</button>}
                       <button type="button" onClick={() => deleteDriver(d)} className="rounded border border-rose-300 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50">
                         차주 전체 삭제
                       </button>
-                    </div>
-                  )}
+                    </>}
+                  </div>
                   {expandedId === d.id && (
                     <div className="mt-2 rounded-lg bg-slate-50 p-3 text-sm">
                       {!expandedHistory && <p className="text-slate-400">불러오는 중...</p>}
